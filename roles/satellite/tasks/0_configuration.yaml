@@ -1,0 +1,11 @@
+---
+# To-Do
+- debug:
+    msg: "Test Message - Satellite Servers"
+
+- name: "Install MySQL Tools Repository"
+  yum_repository:
+    name: mysql-tools-community
+    description: MySQL Tools
+    baseurl: "{{ mysql_tools_url }}"
+    gpgcheck: no

@@ -1,0 +1,6 @@
+---
+- name: "Provision C2 Stack"
+  hosts: stack
+  connection: local
+  roles:
+    - heat

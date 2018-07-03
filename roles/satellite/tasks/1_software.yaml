@@ -1,0 +1,6 @@
+---
+# Install MySQL Router for MySQL Cluster
+- name: "Install MySQL Router"
+  yum:
+    name: mysql-router
+    state: present

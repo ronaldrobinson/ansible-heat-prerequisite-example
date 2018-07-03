@@ -1,0 +1,32 @@
+---
+- name: "Configure Prerequisites for C2 hosts"
+  hosts: common
+  remote_user:
+  become: true
+
+  roles:
+    - common
+
+- name: "Configure C2 fleet and backup servers"
+  hosts: fleet
+  remote_user:
+  become: true
+
+  roles:
+    - fleet
+
+- name: "Configure Prerequisites for C2 primary and backup satellite instances"
+  hosts: satellite
+  remote_user:
+  become: true
+
+  roles:
+    - satellite
+
+- name: "Configure Prerequisites for C2 virtualized workstations"
+  hosts: workstation
+  remote_user:
+  become: true
+
+  roles:
+    - workstations

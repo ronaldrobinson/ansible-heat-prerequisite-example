@@ -1,0 +1,7 @@
+---
+- include_tasks: 0_configuration.yaml
+- include_tasks: 1_software.yaml
+- include_tasks: nfs.yml
+# reboot required after enabling GNOME Desktop
+#- include_tasks: reboot.yml
+#- include_tasks: 2_install.yaml

@@ -1,0 +1,104 @@
+---
+## This is the top level in the HOT Template
+description: Template to deploy C2 Software Stack
+heat_template_version: 2017-02-24
+# Parameters defined here must always be referenced in your resources section by at least one of the Resource Groups you create.
+parameters:
+  flavor:
+    type: string
+  flavor_fleet:
+    type: string
+  image:
+    type: string
+  key_name:
+    type: string
+  fleet_count:
+    type: number
+  satellite_count:
+    type: number
+  workstation_count:
+    type: number
+  name:
+    type: string
+  c2_network:
+    type: string
+  c2_subnet:
+    type: string
+  public_network:
+    type: string
+  security_group:
+    type: string
+
+#Check Stack is only needed if you change resources. (definitely true at top level)
+resources:
+
+  c2_fleet_instances:
+    type: OS::Heat::ResourceGroup
+    properties:
+      count: { get_param: fleet_count }
+      resource_def:
+        type: OW::C2::HAFleet
+        properties:
+        ## 
+        # These properties are getting passed down to the next level yaml file, which is denoted above (OW::C2::HAFleet). 
+        # The associated yaml file for this resource definition type can be found at c2_env.yml (your resource definitions file).
+        ##
+          index: '%index%'
+          flavor: { get_param: flavor_fleet }
+          image: { get_param: image }
+          key_name: { get_param: key_name }
+          c2_network: { get_param: c2_network }
+          c2_subnet: { get_param: c2_subnet }
+          security_group: { get_param: security_group }
+          public_network: { get_param: public_network }
+
+  c2_satellite_instances:
+    type: OS::Heat::ResourceGroup
+    properties:
+      count: { get_param: satellite_count }
+      resource_def:
+        type: OW::C2::HASatellites
+        properties:
+          index: '%index%'
+          flavor: { get_param: flavor }
+          image: { get_param: image }
+          key_name: { get_param: key_name }
+          c2_network: { get_param: c2_network }
+          c2_subnet: { get_param: c2_subnet }
+          security_group: { get_param: security_group }
+          public_network: { get_param: public_network }
+
+  c2_workstation_instances:
+    type: OS::Heat::ResourceGroup
+    properties:
+      count: { get_param: workstation_count }
+      resource_def:
+        type: OW::C2::Workstation
+        properties:
+          name: { get_param: name }
+          index: '%index%'
+          #name: { list_join: ['-', [ 'drtswks', '%index%'] ] }
+          flavor: { get_param: flavor }
+          image: { get_param: image }
+          key_name: { get_param: key_name }
+          c2_network: { get_param: c2_network }
+          c2_subnet: { get_param: c2_subnet }
+          security_group: { get_param: security_group }
+          public_network: { get_param: public_network }
+
+# Output for dashboard (Horizon Orchestration -> Stacks -> Overview)
+outputs:
+  primary_server_attributes:
+    value: { get_attr: [c2_satellite_instances, primary_server_attributes] }
+  backup_server_attributes:
+    value: { get_attr: [c2_satellite_instances, backup_server_attributes] }
+  primary_fleet_attributes:
+    value: { get_attr: [c2_fleet_instances, primary_fleet_attributes] }
+  backup_fleet_attributes:
+    value: { get_attr: [c2_fleet_instances, backup_fleet_attributes] }
+  workstation_attributes:
+    value: { get_attr: [c2_workstation_instances, workstation_attributes] }
+
+# Note:  Outputs are defined by building dictionaries at lower level yaml files.
+#  satellite_server_attributes:
+#    value: { get_attr: [c2_satellite_instances, satellite_server_attributes] }

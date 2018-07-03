@@ -1,0 +1,71 @@
+---
+- name: "MySQL | install MySQL Tools Repository"
+  yum_repository:
+    name: mysql-tools-community
+    description: MySQL Tools
+    baseurl: "{{ mysql_tools_url }}"
+    gpgcheck: no
+
+- name: MySQL | install GMV MySQL packages
+  yum:
+    name: "{{ gmv_mysql_pkgs }}"
+    state: present
+
+- name: MySQL | stop mysqld to set permissions
+  systemd:
+    name: mysqld
+    state: stopped
+
+- name: MySQL | transfer authentication file
+  template:
+    src: my.cnf.j2
+    dest: "/etc/my.cnf"
+    owner: "root"
+    group: "root"
+    mode: 0644
+
+- name: MySQL | create data dir
+  file:
+    path: /home/data
+    owner: mysql
+    group: mysql
+    state: directory
+    mode: 0755
+
+- name: MySQL | initialize MySQL
+  shell: mysqld --initialize
+
+- name: MySQL | change data owner to mysql
+  shell: chown -R mysql:mysql /home/data/
+
+- name: MySQL | start the mysqld service
+  systemd:
+    name: mysqld
+    state: started
+    enabled: true
+
+- name: MySQL | set root password
+  script: "reset_password.sh '{{ mysql_root_password }}'"
+
+- name: MySQL | enable remote login by root
+  shell: mysql -u root -p<REDACTED> -P 6060 -h localhost -e "grant all privileges on *.* to 'root'@'%' identified by '<REDACTED>' with grant option;"
+
+#### To-Do ####
+# Validated the following commands - uncomment for the next release when firewalld/selinux is enabled.
+
+# - name: "Set SELinux Context for MySQL data dir"
+#   sefcontext:
+#     target: "{{ mysql_data_dir}}(/.*)?"
+#     setype: mysqld_db_t
+#     state: present
+
+# - name: "Perform restorcon of mysql data director"
+#   command: restorecon -R "{{ mysql_data_dir }}"
+
+# - name: "Configure firewalld for MySQL"
+#   firewalld:
+#     service: mysql
+#     permanent: true
+#     state: enabled
+#     immediate: true
+

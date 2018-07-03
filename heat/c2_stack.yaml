@@ -1,0 +1,95 @@
+--- 
+description: C2 Stack Template
+heat_template_version: 2017-02-24
+
+parameters: 
+
+  flavor: 
+    type: string
+    description: "Flavor to be used for the whole stack (sans Fleet Servers)"
+    label: Stack Flavor
+    constraints:
+      - custom_constraint: nova.flavor
+  flavor_fleet:
+    type: string
+    description: "Flavor for the fleet servers"
+    label: Fleet Flavor
+    constraints:
+      - custom_constraint: nova.flavor
+  image:
+    type: string
+    description: "Image for all instances"
+    label: Image
+    constraints:
+      - custom_constraint: glance.image
+  key_name: 
+    type: string
+    description: "Key Pair to use for authentication"
+    label: Key
+    constraints:
+      - custom_constraint: nova.keypair
+  fleet_count: 
+    type: number
+    description: "Number of fleet server instances"
+    default: 2
+    label: "Fleet Count"
+  satellite_count: 
+    type: number
+    description: "Number of satellite server instances"
+    default: 2
+    label: "Satellite Count"
+  workstation_count: 
+    type: number
+    description: "Number of workstation instances"
+    default: 2
+    label: "Workstation Count"
+  c2_network: 
+    description: "Network utilized by the c2 stack."
+    label: Network
+    type: string
+  c2_subnet: 
+    description: "Subnet utilized by the c2 stack."
+    label: Subnet
+    type: string
+  public_network:
+    type: string
+    description: Public c2 network
+    label: Public Network
+  security_group: 
+    type: string
+    description: "Security group to use for the stack resources."
+    label: Security Group
+
+resources: 
+  c2_cluster: 
+    type: "OW::C2::Cluster"
+    properties: 
+      flavor: { get_param: flavor }
+      flavor_fleet: { get_param: flavor_fleet }
+      image: { get_param: image }
+      key_name: { get_param: key_name }
+      fleet_count: { get_param: fleet_count }
+      satellite_count: { get_param: satellite_count }
+      workstation_count: { get_param: workstation_count }
+      name: { get_param: "OS::stack_name" }
+      c2_network: { get_param: c2_network }
+      c2_subnet: { get_param: c2_subnet }
+      public_network: { get_param: public_network }
+      security_group: { get_param: security_group }
+
+outputs: 
+  primary_server_attributes:
+    description: "The ip addresses of the satellite server instances"
+    value: { get_attr: [c2_cluster, primary_server_attributes] }
+  backup_server_attributes:
+    description: "The ip addresses of the satellite server backup instances"
+    value: { get_attr: [c2_cluster, backup_server_attributes] }
+  primary_fleet_attributes:
+    description: "The ip addresses of the fleet server instances"
+    value: { get_attr: [c2_cluster, primary_fleet_attributes] }
+  backup_fleet_attributes:
+    description: "The ip addresses of the backup fleet server instances"
+    value: { get_attr: [c2_cluster, backup_fleet_attributes] }
+  workstation_attributes:
+    description: "The names of the workstation instances."
+    value: { get_attr: [c2_cluster, workstation_attributes] }

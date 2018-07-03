@@ -1,0 +1,7 @@
+resource_registry:
+  OW::C2::Cluster: c2_cluster.yaml
+  OW::C2::Fleet: c2_fleet.yaml
+  OW::C2::Satellite: c2_satellite.yaml
+  OW::C2::Workstation: c2_workstation.yaml
+  OW::C2::HASatellites: c2_satellite_ha.yaml
+  OW::C2::HAFleet: c2_fleet_ha.yaml

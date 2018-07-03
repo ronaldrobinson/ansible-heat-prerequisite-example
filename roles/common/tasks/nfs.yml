@@ -1,0 +1,4 @@
+- name: NFS pre-req | assert rpc-statd service is running
+  service:
+    name: rpc-statd
+    state: started

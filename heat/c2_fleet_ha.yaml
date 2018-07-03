@@ -1,0 +1,94 @@
+---
+description: Template to create a single C2 Fleet Server Instance (Backup and Primary) w/ Anti-affinity
+heat_template_version: 2017-02-24
+parameters:
+  flavor:
+    type: string
+  image:
+    type: string
+  key_name:
+    type: string
+# index parameter is required to start the count at 1, not 0.
+  index:
+    type: string
+  c2_network:
+    type: string
+  c2_subnet:
+    type: string
+  public_network:
+    type: string
+  security_group:
+    type: string
+
+resources:
+
+# Get value of index, and add 1.
+  instance_id:
+    type: OS::Heat::Value
+    properties:
+      type: string
+      value: 
+        yaql:
+          expression: '"{:02d}".format(int($.data.index) + 1)'
+          data:
+            index: { get_param: index }
+
+# Use instance_id and generate the appropriate hostname for fleet servers.
+  dflt_hostname:
+    type: OS::Heat::Value
+    properties:
+      type: string
+      value:
+        str_replace:
+          template: dfltsrv$dflt_hostname
+          params:
+            "$dflt_hostname": { get_attr: [instance_id, value] }
+
+# Use instance_id and generate the appropriate hostname for fleet server backups.
+  bflt_hostname:
+    type: OS::Heat::Value
+    properties:
+      type: string
+      value:
+        str_replace:
+          template: bfltsrv$bflt_hostname
+          params:
+            "$bflt_hostname": { get_attr: [instance_id, value] }
+            
+# Specify anti-affinity so instances start on different compute nodes.
+  fltsrv_group:
+    type: OS::Nova::ServerGroup
+    properties:
+      policies: ['anti-affinity']
+
+  primary_fleet:
+    type: OW::C2::Fleet
+    properties:
+      name: { get_attr: [dflt_hostname, value] }
+      flavor: { get_param: flavor }
+      image: { get_param: image }
+      key_name: { get_param: key_name }
+      c2_network: { get_param: c2_network }
+      c2_subnet: { get_param: c2_subnet }
+      security_group: { get_param: security_group }
+      server_group: { get_resource: fltsrv_group }
+      public_network: { get_param: public_network }
+  
+  backup_fleet:
+    type: OW::C2::Fleet
+    properties:
+      name: { get_attr: [bflt_hostname, value] }
+      flavor: { get_param: flavor }
+      image: { get_param: image }
+      key_name: { get_param: key_name }
+      c2_network: { get_param: c2_network }
+      c2_subnet: { get_param: c2_subnet }
+      security_group: { get_param: security_group }
+      server_group: { get_resource: fltsrv_group }
+      public_network: { get_param: public_network }
+
+outputs:
+  primary_fleet_attributes: 
+    value: { get_attr: [primary_fleet, fleet_server_attributes] }
+  backup_fleet_attributes: 
+    value: { get_attr: [backup_fleet, fleet_server_attributes] }

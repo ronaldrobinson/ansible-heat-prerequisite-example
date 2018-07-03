@@ -1,0 +1,186 @@
+---
+#### User and Group Creation ####
+- name: "Add group hifly_grp with specific GID."
+  group:
+    name: hifly_grp
+    state: present
+    gid: 203
+
+- name: "Add hifly_admin user and set appropriate groups."
+  user:
+    name: hifly_admin
+    comment: "Hifly Admin"
+    ## Ansible Vault!!! ##
+    update_password: always
+    password: "{{ hifly_admin_pw|password_hash('sha512') }}"
+    uid: 1030
+    shell: /bin/bash
+    groups: hifly_grp, wheel
+
+- name: Set root user password
+  user:
+    name: root
+    update_password: always
+    ## Ansible Vault!!! ##
+    password: "{{ root_password }}"
+
+# Future releases need to be key based.
+- name: Allow password authentication
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#PasswordAuthentication yes'
+    line: 'PasswordAuthentication yes'
+
+- name: Comment out password authentication no
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^PasswordAuthentication no'
+    line: '#PasswordAuthentication no'
+
+- name: Restart SSHD
+  systemd:
+    name: sshd
+    state: restarted
+
+# For future ansible plays
+- name: "Add root authorized key to hifly_admin"
+  authorized_key:
+    user: hifly_admin
+    state: present
+    key: "{{ lookup('file', '/home/sysop/.ssh/id_rsa.pub') }}"
+  ignore_errors: True
+
+#### General System Modification (Firewalls, SELinux, etc) ####
+# Note: If this isn't removed, openstack will append a .openstacklocal to the end of each host on a reboot.
+- name: Remove update_hostname from cloud.cfg
+  lineinfile:
+    path: /etc/cloud/cloud.cfg
+    state: absent
+    line: '- update_hostname'
+
+#### Next Release: FirewallD and Selinux functionality will be supported. ####
+# Use a jinja template instead of this nonsense - it doesn't work. Also, get better at regex.
+- name: Disable Selinux
+  lineinfile:
+    path: /etc/selinux/config
+    regexp: '^SELINUX='
+    line: 'SELINUX=disabled'
+
+- name: Disable Selinux To Run Immediately
+  command: setenforce 0
+
+- name: Stop Firewalld
+  systemd:
+    name: firewalld 
+    state: stopped
+
+- name: Disable FirewallD
+  systemd:
+    name: firewalld
+    enabled: no
+
+- name: Shut off selinux in current session
+  command: setenforce 0
+
+#### Repository Modifications ####
+- name: "Remove existing repository files"
+  file:
+    path: /etc/yum.repos.d/*.repo
+    state: absent
+
+- name: "Install EPEL repository"
+  yum_repository:
+    name: epel
+    description: EPEL7 Repository
+    baseurl: "{{ epel_url }}"
+    gpgcheck: no
+
+- name: "Install RHEL Common repository"
+  yum_repository:
+    name: rhel_common
+    description: RHEL Common RPMs Repository
+    file: RHEL_Repos
+    baseurl: "{{ rhcommon_url }}"
+    gpgcheck: no
+
+- name: "Install RHEL Server repository"
+  yum_repository:
+    name: rhel_server
+    description: RHEL Update Repository
+    file: RHEL_Repos
+    baseurl: "{{ rhserver_url }}"
+    gpgcheck: no
+
+- name: "Install RHEL Extras repository"
+  yum_repository:
+    name: rhel_extras
+    description: RHEL Extras Repository
+    file: RHEL_Repos
+    baseurl: "{{ rhextras_url }}"
+    gpgcheck: no
+
+- name: "Install RHEL GMV repository"
+  yum_repository:
+    name: rhel_gmv
+    description: GMV Image Repository
+    file: RHEL_GMV
+    baseurl: "{{ gmv_url }}"
+    gpgcheck: no
+
+- name: "Install Nagios Repository"
+  yum_repository:
+    name: nagios
+    description: Nagios Software
+    file: Nagios_Repos
+    baseurl: "{{ nagios_url }}"
+    gpgcheck: no
+
+- name: "Install Nagios Dependencies Repository"
+  yum_repository:
+    name: nagios_deps
+    description: Nagios Dependencies
+    file: Nagios_Repos
+    baseurl: "{{ nagiosdeps_url }}"
+    gpgcheck: no
+
+- name: "Install Nux-Dextop Repository"
+  yum_repository:
+    name: nux-dextop
+    description: Nux Dextop Repo for ArandR Installation
+    file: RHEL_GMV
+    baseurl: "{{ nux_url }}"
+    gpgcheck: no
+
+- name: "Clean Yum"
+  command: yum clean all
+
+- name: "Make new Yum Cache"
+  shell: yum makecache fast
+
+- name: "Disable RedHat Subscription Manager"
+  systemd:
+    name: rhsmcertd.service
+    state: stopped
+    enabled: no
+
+- name: "Disable RHSM Repo Management"
+  command: subscription-manager config --rhsm.manage_repos=0
+
+- name: "Modify Subscription Manager Configuration Files"
+  lineinfile:
+    path: /etc/yum/pluginconf.d/subscription-manager.conf
+    regexp: '^enabled=1'
+    line: 'enabled=0'
+
+#### Certificates (Dev/Prod) ####
+- name: "Install Dev Certificate"
+  copy:
+    src: dev-ca.cer
+    dest: /etc/pki/ca-trust/source/anchors/dev-ca.cer
+    owner: root
+    group: root
+    mode: 0644
+
+- name: "Update CA Trust"
+  command: update-ca-trust extract
+

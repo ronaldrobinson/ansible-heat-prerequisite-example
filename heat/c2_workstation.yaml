@@ -1,0 +1,82 @@
+---
+description: Template to create a single C2 Workstation Instance
+heat_template_version: 2017-02-24
+parameters:
+  flavor:
+    type: string
+  image:
+    type: string
+  key_name:
+    type: string
+  name:
+    type: string
+  c2_network:
+    type: string
+  c2_subnet:
+    type: string
+  public_network:
+    type: string
+  security_group:
+    type: string
+# Index parameter is required to start count at 1, not 0.
+  index:
+    type: string
+
+resources:
+
+# Get value of index, and add 1.
+  instance_id:
+    type: OS::Heat::Value
+    properties:
+      type: string
+      value: 
+        yaql:
+          expression: '"{:02d}".format(int($.data.index) + 1)'
+          data:
+            index: { get_param: index }
+
+# Use instance_id and generate the appropriate hostname for workstations.
+  wks_hostname:
+    type: OS::Heat::Value
+    properties:
+      type: string
+      value:
+        str_replace:
+          template: drtswks$wks_hostname
+          params:
+            "$wks_hostname": { get_attr: [instance_id, value] }
+
+  server:
+    type: OS::Nova::Server
+    properties:
+      name: { get_attr: [wks_hostname, value] }
+      image: { get_param: image }
+      flavor: { get_param: flavor }
+      key_name: { get_param: key_name }
+      networks:
+        - port: { get_resource: c2_port }
+
+# This section (c2_port) is required to attach a floating IP.
+  c2_port:
+    type: OS::Neutron::Port
+    properties:
+      network: { get_param: c2_network }
+      security_groups:
+        - { get_param: security_group }
+      fixed_ips:
+        - subnet: { get_param: c2_subnet }
+      replacement_policy: AUTO
+
+  c2_floating:
+    type: OS::Neutron::FloatingIP
+    properties:
+      floating_network: { get_param: public_network }
+      port_id: { get_resource: c2_port }
+
+outputs:
+
+  workstation_attributes:
+    value:
+      name: { get_attr: [server, name] }
+      private_ip: { get_attr: [server, first_address] }
+      floating_ip: { get_attr: [c2_floating, floating_ip_address] }

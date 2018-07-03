@@ -1,0 +1,17 @@
+---
+#### General System Configuration ####
+- name: Set Graphical.Target as Default
+  command: systemctl set-default graphical.target
+
+- name:
+  yum_repository:
+    name: google-chrome
+    description: Google Chrome Repository
+    baseurl: https://nexus.dev.oneweb.net:8753/repository/google-chrome-stable/
+    gpgcheck: no
+
+  # To-Do (Physical Wks)
+  # Install Google Chrome.
+  # mattermost
+  # ArandR
+  

@@ -1,0 +1,3 @@
+---
+- include_tasks: 0_configuration.yaml
+- include_tasks: 1_software.yaml

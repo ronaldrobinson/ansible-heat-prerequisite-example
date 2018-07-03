@@ -1,0 +1,13 @@
+---
+stack_name: dev4-c2stack
+flavor: m1.2xmedium
+flavor_fleet: m1.large
+image: 288aad9e-542d-4f33-b1ef-1520b3429f21
+key_name: INE
+fleet_count: 4
+satellite_count: 30
+workstation_count: 20
+c2_network: ea47071c-84a9-4c1c-b78f-981735a45efd
+c2_subnet: 781b2eb6-a310-490e-9582-d222e8aae885
+public_network: f254bb76-b5ef-4110-9e5b-3d2be33e0b18
+security_group: e1174bc5-e1d9-4b2a-add0-389bf71df225

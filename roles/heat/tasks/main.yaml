@@ -1,0 +1,85 @@
+---
+# Refer to group_vars/stack for these parameters
+- os_stack:
+    name: "{{ stack_name }}"
+    state: present
+    template: heat/c2_stack.yaml
+    environment:
+      - heat/c2_env.yaml
+    parameters:
+      flavor: "{{ flavor }}"
+      flavor_fleet: "{{ flavor_fleet }}"
+      image: "{{ image }}"
+      key_name: "{{ key_name }}"
+      fleet_count: "{{ fleet_count }}"
+      satellite_count: "{{ satellite_count }}"
+      workstation_count: "{{ workstation_count }}"
+      c2_network: "{{ c2_network }}"
+      c2_subnet: "{{ c2_subnet }}"
+      public_network: "{{ public_network }}"
+      security_group: "{{ security_group }}"
+  register: c2_stack
+  tags:
+    - heat
+  
+# Generate dynamic inventories from os_stack creation.
+- name: "Add fleet servers to inventory"
+  add_host:
+    name: "{{ item }}"
+    groups:
+      - common
+      - fleet
+      - cluster
+  with_items: "{{ c2_stack|json_query(primary_fleet_ips) }}"
+  vars:
+    primary_fleet_ips: "stack.outputs[?output_key=='primary_fleet_attributes'].output_value[].private_ip"
+    
+- name: "Add backup fleet servers to inventory"
+  add_host:
+    name: "{{ item }}"
+    groups:
+      - common
+      - fleet
+      - cluster
+  with_items: "{{ c2_stack|json_query(backup_fleet_ips) }}"
+  vars:
+    backup_fleet_ips: "stack.outputs[?output_key=='backup_fleet_attributes'].output_value[].private_ip"
+      
+- name: "Add satellite servers to inventory"
+  add_host:
+    name: "{{ item }}"
+    groups:
+      - common
+      - satellite
+      - cluster
+  with_items: "{{ c2_stack|json_query(primary_satellite_ips) }}"
+  vars:
+    primary_satellite_ips: "stack.outputs[?output_key=='primary_server_attributes'].output_value[].private_ip"
+    
+- name: "Add backup satelite servers to inventory"
+  add_host:
+    name: "{{ item }}"
+    groups:
+      - common
+      - satellite
+      - cluster
+  with_items: "{{ c2_stack|json_query(backup_satellite_ips) }}"
+  vars:
+    backup_satellite_ips: "stack.outputs[?output_key=='backup_server_attributes'].output_value[].private_ip"
+
+- name: "Add workstations to inventory"
+  add_host:
+    name: "{{ item }}"
+    groups:
+      - common
+      - workstation
+      - cluster
+  with_items: "{{ c2_stack|json_query(workstation_ips) }}"
+  vars:
+    workstation_ips: "stack.outputs[?output_key=='workstation_attributes'].output_value[].private_ip"
+
+- name: "Pause to allow nodes to come up"
+  pause:
+    minutes: 2
+  tags:
+    - heat

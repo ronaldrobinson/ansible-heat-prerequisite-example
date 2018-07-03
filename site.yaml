@@ -1,0 +1,3 @@
+---
+- import_playbook: launch_stack.yaml
+- import_playbook: configure_stack.yaml

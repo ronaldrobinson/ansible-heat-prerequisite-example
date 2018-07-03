@@ -1,0 +1,139 @@
+---
+#### Packages Slated for Removal ####
+# Software removal - causes hell with installation
+- name: Remove ClamAV
+  yum: 
+    name: clamd
+    state: absent
+  tags: debug
+
+##
+# Note: These packages must be removed prior to installing the software below.
+# The default image includes higher versions of dependencies which will break
+# redhat-lsb and/or GNOME/X Window System
+##
+- name: "Remove existing ghostscript if package exists"
+  yum:
+    name: ghostscript*
+    state: absent
+  tags: debug
+
+- name: "Remove existing jasper-libs if package exists"
+  yum:
+    name: jasper-libs*
+    state: absent
+  tags: debug
+
+#### Prerequisite Software Packages ####
+##
+# Note: The packages are in the appropriate order to ensure a perfectly clean install.
+# The individual tasks for packages ensure improper dependencies are removed cleanly.
+##
+
+- name: "Install Xerces"
+  yum:
+    name: "{{ xerces_pkgs }}"
+    state: present
+    validate_certs: no
+  tags: debug
+
+- name: "Install ImageMagick"
+  yum:
+    name: "{{ ghostscript_pkgs }}"
+    state: present
+    validate_certs: no
+  tags: debug
+
+- name: "Install Qt3"
+  yum:
+    name: qt3-devel-3.3.8b-51.el7.x86_64
+    state: present
+    validate_certs: no
+  tags: debug
+
+- name: "Install glibc"
+  yum:
+    name: glibc.i686
+    state: present
+    validate_certs: no
+  tags: debug
+
+- name: "Install redhat-lsb"
+  yum:
+    name: redhat-lsb.x86_64
+    state: present
+    validate_certs: no
+  tags: debug
+
+- name: "Install Java JDK (Headless)"
+  yum:
+    name: java-1.8.0-openjdk-headless-1.8.0.141-1.b16.el7_3.x86_64
+    state: present
+    validate_certs: no
+  tags: debug
+
+- name: "Install GMV packages that don't require dev tools."
+  yum:
+    name: "{{ gmv_prerequisites }}"
+    state: present
+    validate_certs: no
+  tags: debug
+
+# - name: "Install X Window System"
+#   yum:
+#     name: "@X Window System"
+#     state: present
+#     validate_certs: no
+
+- name: "Install Xfce"
+  yum:
+    name: "@Xfce"
+    state: present
+    validate_certs: no
+
+#### Testing ####
+# - name: "Install Minimal Gnome Desktop"
+#   yum:
+#     name: "{{ gnome_minimal_pkgs }}"
+#     state: present
+#     validate_certs: no
+
+# 2018-06-17: gnome desktop is not properly installed, enabling the GUI causes a segfault
+#  - name: Enable GNOME Desktop GUI
+#    file:
+#      src: /lib/systemd/system/runlevel5.target
+#      dest: /etc/systemd/system/default.target
+#      state: link
+#      force: yes
+#    #become: true
+#    #notify: Reboot server
+
+- name: "Install/Reinstall Firefox"
+  yum:
+    name: firefox-52.0-5.el7.centos.x86_64
+    state: present
+    validate_certs: no
+
+- name: "Install XDG-User-Dirs"
+  yum:
+    name: xdg-user-dirs
+    state: present
+    validate_certs: no
+
+- name: "Install nfs-utils"
+  yum:
+    name: nfs-utils
+    state: present
+    validate_certs: no
+
+- name: "Install Development Tools"
+  yum:
+    name: "@Development Tools"
+    state: present
+    validate_certs: no
+
+- name: "Install additional GMV prerequisites that must be installed after Development Tools."
+  yum: 
+    name: "{{ gmv_prerequisites_2 }}"
+    state: present
+    validate_certs: no

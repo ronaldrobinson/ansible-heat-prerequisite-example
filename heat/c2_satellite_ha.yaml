@@ -1,0 +1,95 @@
+---
+description: Template to create a single C2 Satellite Server Instance (Backup and Primary) w/ Anti-Affinity
+heat_template_version: 2017-02-24
+parameters:
+  flavor:
+    type: string
+  image:
+    type: string
+  key_name:
+    type: string
+# index parameter is required to start the count at 1, not 0.
+  index:
+    type: string
+  c2_network:
+    type: string
+  c2_subnet:
+    type: string
+  public_network:
+    type: string
+  security_group:
+    type: string
+
+resources:
+
+# Get value of index, and add 1.
+  instance_id:
+    type: OS::Heat::Value
+    properties:
+      type: string
+      value: 
+        yaql:
+          expression: '"{:02d}".format(int($.data.index) + 1)'
+          data:
+            index: { get_param: index }
+
+# Use instance_id and generate the appropriate hostname for satellite servers.
+  srv_hostname:
+    type: OS::Heat::Value
+    properties:
+      type: string
+      value:
+        str_replace:
+          template: drtssrv$srv_hostname
+          params:
+            "$srv_hostname": { get_attr: [instance_id, value] }
+
+# Use instance_id and generate the appropriate hostname for backup servers.
+  brt_hostname:
+    type: OS::Heat::Value
+    properties:
+      type: string
+      value:
+        str_replace:
+          template: brtssrv$brt_hostname
+          params:
+            "$brt_hostname": { get_attr: [instance_id, value] }
+
+  satsrv_group:
+    type: OS::Nova::ServerGroup
+    properties:
+      policies: ['anti-affinity']
+
+  primary_server:
+    type: OW::C2::Satellite
+    properties:
+      name: { get_attr: [srv_hostname, value] }
+      image: { get_param: image }
+      flavor: { get_param: flavor }
+      key_name: { get_param: key_name }
+      c2_network: { get_param: c2_network }
+      c2_subnet: { get_param: c2_subnet }
+      public_network: { get_param: public_network }
+      security_group: { get_param: security_group }
+      server_group: { get_resource: satsrv_group }
+  
+  backup_server:
+    type: OW::C2::Satellite
+    properties:
+      name: { get_attr: [brt_hostname, value] }
+      image: { get_param: image }
+      flavor: { get_param: flavor }
+      key_name: { get_param: key_name }
+      c2_network: { get_param: c2_network }
+      c2_subnet: { get_param: c2_subnet }
+      public_network: { get_param: public_network }
+      security_group: { get_param: security_group }
+      server_group: { get_resource: satsrv_group }
+
+## Heirarchy
+# satellite -> satellite_ha -> cluster -> stack 
+outputs:
+  primary_server_attributes: 
+    value: { get_attr: [primary_server, satellite_server_attributes ] }
+  backup_server_attributes: 
+    value: { get_attr: [backup_server, satellite_server_attributes ] }
